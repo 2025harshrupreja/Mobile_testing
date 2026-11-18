@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import '../models/recipe.dart';
 
@@ -16,6 +18,15 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
+    // sqflite ships native plugins for Android/iOS/macOS only, so on Chrome
+    // there is no method-channel implementation to talk to. Swap the global
+    // factory for the WebAssembly build of SQLite before opening the database.
+    // The no-worker variant only needs web/sqlite3.wasm; for this small demo
+    // database running SQLite directly in the page is fine.
+    if (kIsWeb) {
+      databaseFactory = databaseFactoryFfiWebNoWebWorker;
+    }
+
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'recipe_book.db');
 
